@@ -15,7 +15,7 @@ namespace Toxiproxy.Net.Tests
         {
             var client = _connection.Client();
 
-            await Assert.ThrowsAsync<ToxiProxiException>(async () =>
+            await Assert.ThrowsAsync<ToxiProxyException>(async () =>
 	            await client.FindProxyAsync("DOESNOTEXIST"));
         }
 
@@ -198,7 +198,7 @@ namespace Toxiproxy.Net.Tests
 
             // deleting is not idemnepotent and should throw exception
             await proxy.DeleteAsync();
-            var exception = await Assert.ThrowsAsync<ToxiProxiException>(() => proxy.DeleteAsync());
+            var exception = await Assert.ThrowsAsync<ToxiProxyException>(() => proxy.DeleteAsync());
             Assert.Equal("Not found", exception.Message);
         }
 
@@ -214,7 +214,7 @@ namespace Toxiproxy.Net.Tests
             await proxy.DeleteAsync();
 
             // check it doesn't exists
-            await Assert.ThrowsAsync<ToxiProxiException>(async () =>
+            await Assert.ThrowsAsync<ToxiProxyException>(async () =>
                 await client.FindProxyAsync(ProxyOne.Name));
         }
 

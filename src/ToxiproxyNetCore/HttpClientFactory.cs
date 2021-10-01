@@ -16,15 +16,11 @@ namespace Toxiproxy.Net
             _baseUrl = baseUrl;
         }
 
-        public Uri BaseUrl
-        {
-            get { return _baseUrl; }
-        }
+        public Uri BaseUrl => _baseUrl;
 
         public HttpClient Create()
         {
-            var client = new HttpClient();
-            client.BaseAddress = _baseUrl;
+            var client = new HttpClient {BaseAddress = _baseUrl};
             client.DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/json");
             return client;
         }

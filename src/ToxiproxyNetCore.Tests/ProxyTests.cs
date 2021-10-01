@@ -269,7 +269,7 @@ namespace Toxiproxy.Net.Tests
                 Stream = ToxicDirection.UpStream
             };
 
-            await Assert.ThrowsAsync<ToxiProxiException>(
+            await Assert.ThrowsAsync<ToxiProxyException>(
                 async () => await newProxy.AddAsync(toxicWithSameName));
         }
 

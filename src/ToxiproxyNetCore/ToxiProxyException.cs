@@ -4,23 +4,23 @@ using System.Runtime.Serialization;
 namespace Toxiproxy.Net
 {
     [Serializable]
-    public class ToxiProxiException : Exception
+    public class ToxiProxyException : Exception
     {
-        public ToxiProxiException()
+        public ToxiProxyException()
         {
         }
 
-        public ToxiProxiException(string message) : 
+        public ToxiProxyException(string message) : 
             base(message)
         {
         }
 
-        public ToxiProxiException(string message, Exception inner) : 
+        public ToxiProxyException(string message, Exception inner) : 
             base(message, inner)
         {
         }
 
-        protected ToxiProxiException(SerializationInfo info, StreamingContext context) : 
+        protected ToxiProxyException(SerializationInfo info, StreamingContext context) : 
             base(info, context)
         {
         }
