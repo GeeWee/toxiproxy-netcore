@@ -70,6 +70,7 @@ namespace Toxiproxy.Net.Tests
             
 	        // Assert - no errors are thrown and 3 proxies exist.
 	        var allProxies = await client.AllAsync();
+	        Assert.Equal(3, allProxies.Count);
 	        Assert.Equal(3, allProxies.Keys.Count);
 
 	        // All three proxies are in dictionary

@@ -193,31 +193,28 @@ namespace Toxiproxy.Net
                 throw new ArgumentNullException("proxies");
             }
 
-            using (var httpClient = _clientFactory.Create())
-            {
-                var postPayload = JsonConvert.SerializeObject(proxies);
-                var response = await httpClient.PostAsync("/populate", new StringContent(postPayload, Encoding.UTF8, "application/json"));
-                await CheckIsSuccessStatusCode(response);
+            using var httpClient = _clientFactory.Create();
+            var postPayload = JsonConvert.SerializeObject(proxies);
+            var response = await httpClient.PostAsync("/populate", new StringContent(postPayload, Encoding.UTF8, "application/json"));
+            await CheckIsSuccessStatusCode(response);
 
-                var responseResult = await response.Content.ReadAsStringAsync();
+            var responseResult = await response.Content.ReadAsStringAsync();
                 
-                var proxiesFromServer = JsonConvert.DeserializeObject<ProxyList>(responseResult);
+            var proxiesFromServer = JsonConvert.DeserializeObject<ProxyList>(responseResult);
 
-                foreach (var proxy in proxies)
-                {
-                    var matchingProxy = proxiesFromServer.Proxies
-                        .Single(serverProxy => serverProxy.Name == proxy.Name);
+            foreach (var proxy in proxies)
+            {
+                var matchingProxy = proxiesFromServer.Proxies
+                    .Single(serverProxy => serverProxy.Name == proxy.Name);
                     
-                    proxy.Client = this;
-                    proxy.Enabled = matchingProxy.Enabled;
-                    proxy.Listen = matchingProxy.Listen;
-                    proxy.Name = matchingProxy.Name;
-                    proxy.Upstream = matchingProxy.Upstream;
-                }
-
-                return proxies;
-
+                proxy.Client = this;
+                proxy.Enabled = matchingProxy.Enabled;
+                proxy.Listen = matchingProxy.Listen;
+                proxy.Name = matchingProxy.Name;
+                proxy.Upstream = matchingProxy.Upstream;
             }
+
+            return proxies;
         }
 
         private class ProxyList
