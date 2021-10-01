@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using Newtonsoft.Json;
@@ -26,8 +27,8 @@ namespace Toxiproxy.Net
         {
             using (var httpClient = _clientFactory.Create())
             {
-                var response = httpClient.GetAsync("/proxies").Result;
-                CheckIsSuccessStatusCode(response);
+                var response = await httpClient.GetAsync("/proxies");
+                await CheckIsSuccessStatusCode(response);
 
                 var responseResult = await response.Content.ReadAsStringAsync();
                 var result = JsonConvert.DeserializeObject<Dictionary<string, Proxy>>(responseResult);
@@ -50,7 +51,7 @@ namespace Toxiproxy.Net
             {
                 var response = await httpClient.PostAsync("/reset", null);
 
-                CheckIsSuccessStatusCode(response);
+                await CheckIsSuccessStatusCode(response);
             }
         }
 
@@ -72,7 +73,7 @@ namespace Toxiproxy.Net
             {
                 var postPayload = JsonConvert.SerializeObject(proxy);
                 var response = await httpClient.PostAsync("/proxies", new StringContent(postPayload, Encoding.UTF8, "application/json"));
-                CheckIsSuccessStatusCode(response);
+                await CheckIsSuccessStatusCode(response);
 
                 var responseResult = await response.Content.ReadAsStringAsync();
                 JsonConvert.PopulateObject(responseResult, proxy);
@@ -102,7 +103,7 @@ namespace Toxiproxy.Net
                 var postPayload = JsonConvert.SerializeObject(proxy);
                 var response = await httpClient.PostAsync(url, new StringContent(postPayload, Encoding.UTF8, "application/json"));
 
-                CheckIsSuccessStatusCode(response);
+                await CheckIsSuccessStatusCode(response);
 
                 var responseResult = await response.Content.ReadAsStringAsync();
                 JsonConvert.PopulateObject(responseResult, proxy);
@@ -129,9 +130,9 @@ namespace Toxiproxy.Net
             using (var httpClient = _clientFactory.Create())
             {
                 var url = string.Format("/proxies/{0}", proxyName);
-                var response = httpClient.GetAsync(url).Result;
+                var response = await httpClient.GetAsync(url);
 
-                CheckIsSuccessStatusCode(response);
+                await CheckIsSuccessStatusCode(response);
 
                 var resultString = await response.Content.ReadAsStringAsync();
                 var proxy = JsonConvert.DeserializeObject<Proxy>(resultString);
@@ -173,9 +174,54 @@ namespace Toxiproxy.Net
                 var url = string.Format("/proxies/{0}", proxyName);
                 var response = await httpClient.DeleteAsync(url);
 
-                CheckIsSuccessStatusCode(response);
+                await CheckIsSuccessStatusCode(response);
             }
         }
+        
+        public Task<List<Proxy>> PopulateAsync(params Proxy[] proxies)
+        {
+            return PopulateAsync(proxies.ToList());
+        }
+        
+        /// <summary>
+        /// Populates the specified proxy to the ToxiProxy server.
+        /// </summary>
+        public async Task<List<Proxy>> PopulateAsync(List<Proxy> proxies)
+        {
+            if (proxies == null)
+            {
+                throw new ArgumentNullException("proxies");
+            }
+
+            using var httpClient = _clientFactory.Create();
+            var postPayload = JsonConvert.SerializeObject(proxies);
+            var response = await httpClient.PostAsync("/populate", new StringContent(postPayload, Encoding.UTF8, "application/json"));
+            await CheckIsSuccessStatusCode(response);
+
+            var responseResult = await response.Content.ReadAsStringAsync();
+                
+            var proxiesFromServer = JsonConvert.DeserializeObject<ProxyList>(responseResult);
+
+            foreach (var proxy in proxies)
+            {
+                var matchingProxy = proxiesFromServer.Proxies
+                    .Single(serverProxy => serverProxy.Name == proxy.Name);
+                    
+                proxy.Client = this;
+                proxy.Enabled = matchingProxy.Enabled;
+                proxy.Listen = matchingProxy.Listen;
+                proxy.Name = matchingProxy.Name;
+                proxy.Upstream = matchingProxy.Upstream;
+            }
+
+            return proxies;
+        }
+
+        private class ProxyList
+        {
+            public List<Proxy> Proxies { get; set; }
+        }
+        
         #endregion
 
         #region Toxic
@@ -205,8 +251,8 @@ namespace Toxiproxy.Net
             using (var httpClient = _clientFactory.Create())
             {
                 var url = string.Format("/proxies/{0}/toxics/{1}", proxy.Name, toxicName);
-                var response = httpClient.GetAsync(url).Result;
-                CheckIsSuccessStatusCode(response);
+                var response = await httpClient.GetAsync(url);
+                await CheckIsSuccessStatusCode(response);
 
                 var responseContent = await response.Content.ReadAsStringAsync();
                 var toxic = JsonConvert.DeserializeObject<ToxicBase>(responseContent, _deserializeConverter);
@@ -254,7 +300,7 @@ namespace Toxiproxy.Net
 
                 var response = await client.PostAsync(url, new StringContent(objectSerialized, Encoding.UTF8, "application/json"));
 
-                CheckIsSuccessStatusCode(response);
+                await CheckIsSuccessStatusCode(response);
 
                 var content = await response.Content.ReadAsStringAsync();
                 var result = JsonConvert.DeserializeObject<T>(content);
@@ -276,9 +322,9 @@ namespace Toxiproxy.Net
             using (var client = _clientFactory.Create())
             {
                 var url = string.Format("proxies/{0}/toxics", proxyName);
-                var response = client.GetAsync(url).Result;
+                var response = await client.GetAsync(url);
 
-                CheckIsSuccessStatusCode(response);
+                await CheckIsSuccessStatusCode(response);
 
                 var content = await response.Content.ReadAsStringAsync();
                 var result = JsonConvert.DeserializeObject<List<ToxicBase>>(content, _deserializeConverter);
@@ -298,7 +344,7 @@ namespace Toxiproxy.Net
                 var url = string.Format("/proxies/{0}/toxics/{1}", proxyName, toxicName);
                 var response = await client.DeleteAsync(url);
 
-                CheckIsSuccessStatusCode(response);
+                await CheckIsSuccessStatusCode(response);
             }
         }
 
@@ -333,7 +379,7 @@ namespace Toxiproxy.Net
                 var objectSerialized = JsonConvert.SerializeObject(toxic);
                 var response = await client.PostAsync(url, new StringContent(objectSerialized, Encoding.UTF8, "application/json"));
 
-                CheckIsSuccessStatusCode(response);
+                await CheckIsSuccessStatusCode(response);
 
                 var content = await response.Content.ReadAsStringAsync();
                 var result = JsonConvert.DeserializeObject<T>(content, _deserializeConverter);
@@ -354,7 +400,7 @@ namespace Toxiproxy.Net
         /// </exception>
         #endregion
 
-        private void CheckIsSuccessStatusCode(HttpResponseMessage response)
+        private async Task CheckIsSuccessStatusCode(HttpResponseMessage response)
         {
             if (!response.IsSuccessStatusCode)
             {
@@ -367,7 +413,7 @@ namespace Toxiproxy.Net
                         throw new ToxiProxiException("duplicated entity");
 
                     default:
-                        var errorContent = response.Content.ReadAsStringAsync().Result;
+                        var errorContent = await response.Content.ReadAsStringAsync();
                         var error = JsonConvert.DeserializeObject<ToxiProxiErrorMessage>(errorContent);
                         throw new ToxiProxiException("An error occurred: " + error.title);
                 }
